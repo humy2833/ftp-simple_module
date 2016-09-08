@@ -1,0 +1,22 @@
+{
+  "name": "ftp-simple",
+  "version": "0.1.8",
+  "description": "simple ftp",
+  "main": "ftp.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ftp",
+    "upload",
+    "download",
+    "remote"
+  ],
+  "dependencies": {
+    "easy-loop": "^1.4.4",
+    "fs-extra": "^0.30.0",
+    "jsftp": "^1.5.3"
+  },
+  "author": "humy2833 <humy2833@gmail.com>",
+  "license": "MIT"
+}
