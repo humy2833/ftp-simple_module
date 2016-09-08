@@ -1,6 +1,6 @@
 {
   "name": "ftp-simple",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "simple ftp",
   "main": "ftp.js",
   "scripts": {
@@ -16,6 +16,13 @@
     "easy-loop": "^1.4.4",
     "fs-extra": "^0.30.0",
     "jsftp": "^1.5.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/humy2833/ftp-simple_module.git"
+  },
+  "bugs": {
+    "url": "https://github.com/humy2833/ftp-simple_module/issues"
   },
   "author": "humy2833 <humy2833@gmail.com>",
   "license": "MIT"
