@@ -642,8 +642,9 @@ function parsePasvList(data){
 		o.date = new Date(dt);
 		if(temp.length === 9) o.name = temp[8];
 		else o.name = getName(list[i], temp[6], temp[7]);
+		if([".", ".."].indexOf(o.name) > -1) continue;
 		o.str = list[i];
-	    arr.push(o);
+	  arr.push(o);
 	}
 	return arr;
   

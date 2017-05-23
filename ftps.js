@@ -12,6 +12,7 @@ function FTPS(config, num){
   this.ftp = [];
   this.idx = 0;
   this.closeCount = 0;
+  this.checker;
   this.connect(config, num);
 }
 util.inherits(FTPS, EventEmitter);
@@ -46,10 +47,18 @@ FTPS.prototype.connect = function(config, num){
       self.emit("error", err);
     });
     ftp.on("download", function(path){
-      self.emit("download", path);
+      if(self.checker && !self.checker.has(path))
+			{
+				self.checker.add(path);
+				self.emit("download", path);
+			}
     });
     ftp.on("upload", function(path){
-      self.emit("upload", path);
+      if(self.checker && !self.checker.has(path))
+			{
+				self.checker.add(path);
+				self.emit("upload", path);
+			}
     });
     ftp.on("close", function(){
       self.closeCount--;
@@ -114,6 +123,7 @@ FTPS.prototype.download = function(remotePath, localPath, cb){
   let isDir = false;
   let p = null;
   let pathLen = 0;
+  self.checker = new Set();
   localPath = pathUtil.normalize(localPath);
   if(/\/\*{1,2}$/.test(remotePath))
   {
@@ -157,24 +167,13 @@ FTPS.prototype.download = function(remotePath, localPath, cb){
     for(let i=0; i<len; i++) servers.push(i);
     loop(data.remote, len, function(i, value, next){
       let idx = servers.shift();
-      if(len > 1 && i > 0)
-      {
-        let pb = pathUtil.getParentPath(data.remote[i-1]);
-        let parent = pathUtil.getParentPath(data.remote[i]);
-      }
-      let errCount = 0;
       let main = () => {
         self.ftp[idx].download(data.remote[i], data.local[i], function(err){
-          if(err && errCount == 0)
-          {
-            errCount++;
-            setTimeout(main, 100);
-          }
-          else
-          {
-            servers.push(idx);
+          servers.push(idx);
+          if(!err)
+					{
             next(err);
-          }
+					}
         });
       };
       main();
@@ -188,6 +187,7 @@ FTPS.prototype.upload = function(localPath, remotePath, cb){
   let isDir = false;
   let p = null;
   let pathLen = 0;
+  self.checker = new Set();
   remotePath = pathUtil.normalize(remotePath);
   if(/\/\*{1,2}$/.test(localPath))
   {
@@ -231,24 +231,13 @@ FTPS.prototype.upload = function(localPath, remotePath, cb){
     for(let i=0; i<len; i++) servers.push(i);
     loop(data.local, len, function(i, value, next){
       let idx = servers.shift();
-      if(len > 1 && i > 0)
-      {
-        let pb = pathUtil.getParentPath(data.remote[i-1]);
-        let parent = pathUtil.getParentPath(data.remote[i]);
-      }
-      let errCount = 0;
       let main = () => {
         self.ftp[idx].upload(data.local[i], data.remote[i], function(err){
-          if(err && errCount == 0) 
-          {
-            errCount++;
-            setTimeout(main, 100);
-          }
-          else
-          {
-            servers.push(idx);
+          servers.push(idx);
+          if(!err)
+					{
             next(err);
-          }
+					}
         });
       };
       main();
