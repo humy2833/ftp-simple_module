@@ -170,7 +170,7 @@ FTPS.prototype.download = function(remotePath, localPath, cb){
       let main = () => {
         self.ftp[idx].download(data.remote[i], data.local[i], function(err){
           servers.push(idx);
-          if(!err)
+          if(!err || err &&  err.message == "No such file")
 					{
             next(err);
 					}
@@ -234,7 +234,7 @@ FTPS.prototype.upload = function(localPath, remotePath, cb){
       let main = () => {
         self.ftp[idx].upload(data.local[i], data.remote[i], function(err){
           servers.push(idx);
-          if(!err)
+          if(!err || err &&  err.message == "No such file")
 					{
             next(err);
 					}
