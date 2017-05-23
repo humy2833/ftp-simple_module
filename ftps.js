@@ -167,13 +167,19 @@ FTPS.prototype.download = function(remotePath, localPath, cb){
     for(let i=0; i<len; i++) servers.push(i);
     loop(data.remote, len, function(i, value, next){
       let idx = servers.shift();
+      let errCount = 0;
       let main = () => {
         self.ftp[idx].download(data.remote[i], data.local[i], function(err){
           servers.push(idx);
-          if(!err || err &&  err.message == "No such file")
+          if(!err || err && err.message == "No such file" || errCount >= 3)
 					{
             next(err);
 					}
+          else 
+          {
+            errCount++;
+            if(errCount < 3) setTimeout(main, 300);
+          }
         });
       };
       main();
@@ -231,13 +237,19 @@ FTPS.prototype.upload = function(localPath, remotePath, cb){
     for(let i=0; i<len; i++) servers.push(i);
     loop(data.local, len, function(i, value, next){
       let idx = servers.shift();
+      let errCount = 0;
       let main = () => {
         self.ftp[idx].upload(data.local[i], data.remote[i], function(err){
           servers.push(idx);
-          if(!err || err &&  err.message == "No such file")
+          if(!err || err && err.message == "No such file" || errCount >= 3)
 					{
             next(err);
 					}
+          else 
+          {
+            errCount++;
+            if(errCount < 3) setTimeout(main, 300);
+          }
         });
       };
       main();
