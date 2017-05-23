@@ -2,7 +2,7 @@
   "name": "ftp-simple",
   "version": "0.1.9",
   "description": "simple ftp",
-  "main": "ftp.js",
+  "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,6 +15,7 @@
   "dependencies": {
     "easy-loop": "^1.4.4",
     "fs-extra": "^0.30.0",
+    "iconv-lite": "^0.4.13",
     "jsftp": "^1.5.3"
   },
   "repository": {

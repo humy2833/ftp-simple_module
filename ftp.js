@@ -179,6 +179,35 @@ FTP.prototype.mv = function(oldPath, newPath, cb){
 		if(cb) cb(err, np);
 	});
 };
+FTP.prototype.lsAll = function(path, cb){
+	var self = this;
+	var arr = [];
+	path = this.getRealRemotePath(path);
+	self.ls(path, function(err, list){
+		if(err)	cb(err, list);
+		else
+		{
+			loop(list, function(i, value, next){
+				let newPath = pathUtil.join(path, value.name);
+				if([".", ".."].indexOf(value.name) > -1) next();
+				else if(value.type === 'd')
+				{
+					self.lsAll(newPath, function(err, list){
+						arr = arr.concat(list);
+						next();
+					});
+				}
+				else
+				{
+					arr.push(newPath);
+					next();
+				}
+			}, function(err){
+				if(cb) cb(err, arr);
+			});
+		}
+	});
+}
 FTP.prototype.ls = function(path, cb){
 	var self = this;
 	if(!this.isConnect)
@@ -201,6 +230,14 @@ FTP.prototype.ls = function(path, cb){
 	}
 	else
 	{
+		this.client.raw["stat"](p, function(err, data){
+			if(!err)
+			{	
+				if(cb) cb(err, parsePasvList(data.text.substring(data.text.indexOf(":")+1)));
+			}
+			else if(cb) cb(err);
+		});
+		/*
 		this.client.ls(p, function(err, list){
 			if(!err)
 			{
@@ -213,6 +250,7 @@ FTP.prototype.ls = function(path, cb){
 			}
 			else if(cb) cb(err);
 		});
+		*/
 	}
 };
 FTP.prototype.pwd = function(cb){
@@ -233,6 +271,20 @@ FTP.prototype.pwd = function(cb){
 		cb(err, data);
 	});
 };
+FTP.prototype.isDir = function(path, cb){
+	var self = this;
+	if(!this.isConnect)
+	{
+		this.waitConnect(function(){
+			self.isDir(path, cb);
+		});
+		return;
+	}
+	var p = this.getRealRemotePath(path);
+	this.ls(p, function(err){
+		if(cb) cb(err ? false : true);
+	});
+}
 FTP.prototype.exist = function(path, cb){
 	var self = this;
 	if(!this.isConnect)
@@ -500,6 +552,7 @@ FTP.prototype.end = FTP.prototype.close = function(cb){
 	var self = this;
 	this.client.raw.quit(function(err, data) {
 	    self.emit("close");
+			if(cb) cb();
 	});
 };
 FTP.prototype.getRealRemotePath = function(path){
@@ -570,25 +623,26 @@ FTP.prototype.checkPasv = function(cb){
 };
 FTP.prototype.event = function(eventType, data){
 	if(!data) return;
-	//console.log("event : ", eventType, JSON.stringify(data));
+	console.log("event : ", eventType, JSON.stringify(data, null, 2));
 	if(data.code >= 400 && data.code <= 599) this.emit("error", data.text);
 };
 function parsePasvList(data){
-	var list = data.split("\r\n");
+	var list = data.trim().split("\n");
 	var arr = [];
 	var year = new Date().getFullYear();
 	for(var i=0, len=list.length; i<len; i++)
 	{
-	  	if(!list[i]) continue;
-	  	var o = {type:'f'};
-	    var temp = list[i].split(/\s+/);
+		list[i] = list[i].trim();
+		var temp = list[i].split(/\s+/);
+		if(!list[i] || temp.length < 9) continue;
+		var o = {type:'f'};
 		if(list[i].substring(0, 1) === 'd') o.type = 'd'; 
-	    o.size = parseInt(temp[4]);
-	    var dt = temp[5] + " " + temp[6] + " " + (temp[7].indexOf(":") > -1 ? year + " " + temp[7] + ":00 GMT+0000" : temp[7]);
-	    o.date = new Date(dt);
-	    if(temp.length === 9) o.name = temp[8];
-	    else o.name = getName(list[i], temp[6], temp[7]);
-	    o.str = list[i];
+		o.size = parseInt(temp[4]);
+		var dt = temp[5] + " " + temp[6] + " " + (temp[7].indexOf(":") > -1 ? year + " " + temp[7] + ":00 GMT+0000" : temp[7]);
+		o.date = new Date(dt);
+		if(temp.length === 9) o.name = temp[8];
+		else o.name = getName(list[i], temp[6], temp[7]);
+		o.str = list[i];
 	    arr.push(o);
 	}
 	return arr;
