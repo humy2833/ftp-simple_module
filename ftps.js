@@ -7,16 +7,16 @@ var pathUtil = require('./lib/path-util');
 var FTP = require('./ftp');
 
 function FTPS(config, num){
-  if(!num || typeof num !== 'number' || num < 0) num = 1;
   EventEmitter.call(this);
   this.ftp = [];
   this.idx = 0;
   this.closeCount = 0;
   this.checker;
-  this.connect(config, num);
+  if(config) this.connect(config, num);
 }
 util.inherits(FTPS, EventEmitter);
 FTPS.prototype.connect = function(config, num){
+  if(!num || typeof num !== 'number' || num < 0) num = 1;
   let self = this;
   let errCount = 0;
   loop(function(){
