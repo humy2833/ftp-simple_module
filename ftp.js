@@ -433,25 +433,24 @@ FTP.prototype.upload = function(localPath, remotePath, cb, isRecursive){
 		}
 	});
 
-		function uploadFile(){
-			fileUtil.readFile(localPath, function(err, data){
-				if(!err)
-				{
-					self.client.put(data, remotePath, function(err){
-						if(!err) self.emit("upload", remotePath);
-						self.cd(cwd, function(){
-							if(cb)cb(err);
-						});
-					});
-				}
-				else if(cb) 
-				{
+	function uploadFile(){
+		fileUtil.readFile(localPath, function(err, data){
+			if(!err)
+			{
+				self.client.put(data, remotePath, function(err){
+					if(!err) self.emit("upload", remotePath);
 					self.cd(cwd, function(){
 						if(cb)cb(err);
 					});
-				}
-			});
-		}					
+				});
+			}
+			else if(cb) 
+			{
+				self.cd(cwd, function(){
+					if(cb)cb(err);
+				});
+			}
+		});
 	}
 };
 FTP.prototype.download = function(remotePath, localPath, cb, isRecursive){
