@@ -364,7 +364,7 @@ FTP.prototype.upload = function(localPath, remotePath, cb, isRecursive){
 				isRecursive = pathUtil.getFileName(localPath) == pathUtil.getFileName(remotePath);
 			}
 			var parent = pathUtil.normalize(remotePath + (isRecursive ? "" : "/" + pathUtil.getFileName(localPath)));
-			this.cd(parent, function(err){
+			self.cd(parent, function(err){
 				if(err)	
 				{	
 					self.mkdir(parent, function(err){
@@ -402,7 +402,7 @@ FTP.prototype.upload = function(localPath, remotePath, cb, isRecursive){
 		{
 			if(!isRecursive)
 			{
-				this.cd(remotePath, function(err){
+				self.cd(remotePath, function(err){
 					if(!err)
 					{
 						remotePath = pathUtil.normalize(remotePath + "/" + pathUtil.getFileName(localPath));
