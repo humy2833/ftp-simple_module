@@ -30,6 +30,7 @@ FTPS.prototype.connect = function(config, num){
       if(ftp) self.ftp.push(ftp);
       if(self.ftp.length >= num)
       {
+        connected = true;
         self.closeCount = num;
         self.emit("open", lastClient);
         self.emit("ready", lastClient);
