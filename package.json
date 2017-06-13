@@ -1,6 +1,6 @@
 {
   "name": "ftp-simple",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "simple ftp",
   "main": "main.js",
   "scripts": {
@@ -16,7 +16,7 @@
     "easy-loop": "^1.4.4",
     "fs-extra": "^0.30.0",
     "iconv-lite": "^0.4.13",
-    "jsftp": "^1.5.3"
+    "jsftp": "^1.5.5"
   },
   "repository": {
     "type": "git",

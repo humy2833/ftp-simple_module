@@ -72,7 +72,7 @@ FTP.prototype.waitConnect = function(cb){
 FTP.prototype.cd = function(path, cb){
 	var self = this;
 	var p = this.getRealRemotePath(path);
-	this.client.raw('cwd '+ p, function(err, data){
+	this.client.raw('cwd', p, function(err, data){
 		if(cb)cb(err, p);
 	});
 };
@@ -86,10 +86,10 @@ FTP.prototype.rm = function(path, cb){
 		return;
 	}
 	var p = this.getRealRemotePath(path);
-	this.client.raw('dele ' + p, function(err){
+	this.client.raw('dele', p, function(err){
 		if(err)
 		{
-			self.client.raw('rmd ' + p, function(err){
+			self.client.raw('rmd', p, function(err){
 				if(err)
 				{
 					deleteChild(p, function(err){
@@ -139,7 +139,7 @@ FTP.prototype.mkdir = function(path, cb){
 	this.exist(p, function(result){
 		if(!result)
 		{
-			self.client.raw('mkd ' + p, function(err){
+			self.client.raw('mkd', p, function(err){
 				if(err)
 				{
 					var arr = p.split("/");
@@ -149,7 +149,7 @@ FTP.prototype.mkdir = function(path, cb){
 						return i <= len;
 					}, function(next){
 						var pp = arr.slice(0, i).join("/");
-						self.client.raw('mkd ' + pp, function(err){
+						self.client.raw('mkd', pp, function(err){
 							if(err) errorCnt--;
 							i++;
 							next();
@@ -231,7 +231,7 @@ FTP.prototype.ls = function(path, cb){
 	}
 	else
 	{
-		this.client.raw('stat ' + p, function(err, data){
+		this.client.raw('stat', p, function(err, data){
 			if(!err)
 			{	
 				if(cb) cb(err, parsePasvList(data.text.substring(data.text.indexOf(":")+1)));
