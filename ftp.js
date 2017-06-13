@@ -193,6 +193,7 @@ FTP.prototype.lsAll = function(path, cb){
 				else if(value.type === 'd')
 				{
 					self.lsAll(newPath, function(err, list){
+						if(list.length === 0) arr.push(newPath);
 						arr = arr.concat(list);
 						next();
 					});
@@ -355,74 +356,82 @@ FTP.prototype.upload = function(localPath, remotePath, cb, isRecursive){
 		localPath = localPath.replace(/\/\*{1,2}$/, '');
 	}
 	remotePath = this.getRealRemotePath(remotePath);
-	if(fileUtil.isDirSync(localPath))
-	{
-		var parent = pathUtil.normalize(remotePath + (isRecursive ? "" : "/" + pathUtil.getFileName(localPath)));
-		this.cd(parent, function(err){
-			if(err)	
-			{	
-				self.mkdir(parent, function(err){
-					if(err) 
-					{
+	fileUtil.isDir(localPath, function(err, isDir){
+		if(isDir)
+		{
+			if(!isRecursive)
+			{
+				isRecursive = pathUtil.getFileName(localPath) == pathUtil.getFileName(remotePath);
+			}
+			var parent = pathUtil.normalize(remotePath + (isRecursive ? "" : "/" + pathUtil.getFileName(localPath)));
+			this.cd(parent, function(err){
+				if(err)	
+				{	
+					self.mkdir(parent, function(err){
+						if(err) 
+						{
+							self.cd(cwd, function(){
+								if(cb)cb(err);
+							});
+						}
+						else
+						{
+							self.emit("upload", parent);
+							bodyDir();
+						}
+					});
+				}
+				else bodyDir();
+			});
+			
+			function bodyDir(){
+				fileUtil.ls(localPath, function(err, list){
+					loop(list, function(i, value, next){
+						self.upload(localPath + "/" + value, parent + "/" + value, function(err){
+							next(err);
+						}, true);
+					}, function(err){
 						self.cd(cwd, function(){
 							if(cb)cb(err);
 						});
-					}
-					else
+					});
+				});
+			}	
+		}
+		else
+		{
+			if(!isRecursive)
+			{
+				this.cd(remotePath, function(err){
+					if(!err)
 					{
-						self.emit("upload", parent);
-						bodyDir();
+						remotePath = pathUtil.normalize(remotePath + "/" + pathUtil.getFileName(localPath));
 					}
+					var parent = pathUtil.getParentPath(remotePath);
+					self.cd(parent, function(err){
+						if(err)	
+						{
+							self.mkdir(parent, function(err){
+								if(err) 
+								{
+									self.cd(cwd, function(){
+										if(cb)cb(err);
+									});
+								}
+								else
+								{
+									self.emit("upload", parent);
+									uploadFile();
+								}
+							});
+						}
+						else uploadFile();
+					});
 				});
 			}
-			else bodyDir();
-		});
-		
-		function bodyDir(){
-			var list = fileUtil.lsSync(localPath);
-			loop(list, function(i, value, next){
-				self.upload(localPath + "/" + value, parent + "/" + value, function(err){
-					next(err);
-				}, true);
-			}, function(err){
-				self.cd(cwd, function(){
-					if(cb)cb(err);
-				});
-			});
-		}			
-	}
-	else
-	{	
-		if(!isRecursive)
-		{
-			this.cd(remotePath, function(err){
-				if(!err)
-				{
-					remotePath = pathUtil.normalize(remotePath + "/" + pathUtil.getFileName(localPath));
-				}
-				var parent = pathUtil.getParentPath(remotePath);
-				self.cd(parent, function(err){
-					if(err)	
-					{
-						self.mkdir(parent, function(err){
-							if(err) 
-							{
-								self.cd(cwd, function(){
-									if(cb)cb(err);
-								});
-							}
-							else
-							{
-								self.emit("upload", parent);
-								uploadFile();
-							}
-						});
-					}
-					else uploadFile();
-				});
-			});
+			else uploadFile();
 		}
-		else uploadFile();
+	});
 
 		function uploadFile(){
 			fileUtil.readFile(localPath, function(err, data){
@@ -494,34 +503,49 @@ FTP.prototype.download = function(remotePath, localPath, cb, isRecursive){
 		{
 			if(!isRecursive)
 			{
-				if(fileUtil.isDirSync(localPath))
-				{
-					localPath = pathUtil.normalize(localPath + "/" + pathUtil.getFileName(remotePath));
-				}
-				else
-				{
-					if(/\/$/.test(tempLocalPath))
-					{	
-						fileUtil.mkdirSync(tempLocalPath);
-						localPath = tempLocalPath + pathUtil.getFileName(remotePath);
+				fileUtil.isDir(localPath, function(err, isDir){
+					if(isDir)
+					{
+						localPath = pathUtil.normalize(localPath + "/" + pathUtil.getFileName(remotePath));
+						bodyFile();
 					}
 					else
 					{
-						fileUtil.mkdirSync(pathUtil.getParentPath(localPath));
+						if(/\/$/.test(tempLocalPath))
+						{	
+							fileUtil.mkdir(tempLocalPath, function(){
+								localPath = tempLocalPath + pathUtil.getFileName(remotePath);
+								bodyFile();
+							});
+						}
+						else
+						{
+							fileUtil.mkdir(pathUtil.getParentPath(localPath), function(){
+								bodyFile();
+							});
+						}
 					}
-				}
+				});
 			}
-			bodyFile();
+			else bodyFile();
 		}
 		else
 		{
-			var parent = pathUtil.normalize(localPath + (isRecursive ? "" : "/" + pathUtil.getFileName(remotePath)));
-			if(!fileUtil.existSync(parent))
-			{	
-				fileUtil.mkdirSync(parent);
-				self.emit("download", parent);
+			if(!isRecursive)
+			{
+				isRecursive = pathUtil.getFileName(localPath) == pathUtil.getFileName(remotePath);
 			}
-			bodyDir(parent);
+			var parent = pathUtil.normalize(localPath + (isRecursive ? "" : "/" + pathUtil.getFileName(remotePath)));
+			fileUtil.exist(parent, function(bool){
+				if(!bool)
+				{
+					fileUtil.mkdir(parent, function(){
+						self.emit("download", parent);
+						bodyDir(parent);
+					});
+				}
+				else bodyDir(parent);
+			});
 		}
 	});
 	
@@ -551,6 +575,7 @@ FTP.prototype.download = function(remotePath, localPath, cb, isRecursive){
 FTP.prototype.end = FTP.prototype.close = function(cb){
 	var self = this;
 	this.client.raw.quit(function(err, data) {
+			self.isConnect = false;
 	    self.emit("close");
 			if(cb) cb();
 	});
