@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 var ftp = require('./ftp');
 var ftps = require('./ftps');
 

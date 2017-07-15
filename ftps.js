@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 var util = require('util');
 var loop = require('easy-loop');
 var EventEmitter = require('events');
