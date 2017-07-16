@@ -1,3 +1,4 @@
+'use strict';
 var util = require('util');
 var JSFtp  = require('jsftp');
 var loop = require('easy-loop');
