@@ -232,6 +232,7 @@ FTP.prototype.ls = function(path, cb){
 	}
 	else
 	{
+		/*
 		this.client.raw('stat', p, function(err, data){
 			if(!err)
 			{	
@@ -239,7 +240,7 @@ FTP.prototype.ls = function(path, cb){
 			}
 			else if(cb) cb(err);
 		});
-		/*
+		*/
 		this.client.ls(p, function(err, list){
 			if(!err)
 			{
@@ -252,7 +253,6 @@ FTP.prototype.ls = function(path, cb){
 			}
 			else if(cb) cb(err);
 		});
-		*/
 	}
 };
 FTP.prototype.pwd = function(cb){
