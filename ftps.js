@@ -4,7 +4,7 @@ var loop = require('easy-loop');
 var EventEmitter = require('events');
 var fileUtil = require('./lib/file-util');
 var pathUtil = require('./lib/path-util');
-var FTP = require('./ftp');
+var FTP = require('./main');
 
 function FTPS(config, num){
   EventEmitter.call(this);
@@ -23,7 +23,7 @@ FTPS.prototype.connect = function(config, num){
   loop(function(){
     return self.ftp.length < num;
   }, function(next, i){
-    let ftp = new FTP(config);
+    let ftp = FTP.create(config);
     
     function open(client, ftp){
       if(client) lastClient = client;
@@ -285,7 +285,7 @@ FTPS.prototype.getIdx = function(){
 }
 FTPS.prototype._makeTask = function(func){
   let task = [];
-  for(let i=0; i<self.ftp.length; i++)
+  for(let i=0; i<this.ftp.length; i++)
   {
     task.push(function(next){
       func(next, i);

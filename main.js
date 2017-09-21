@@ -18,3 +18,6 @@ ftp.ftp2 = ftp2;
 ftp.create = creater;
 ftp.Parallel = ftps;
 module.exports = ftp;
+exports.ftp2 = ftp2;
+exports.create = creater;
+exports.Parallel = ftps;
