@@ -22,7 +22,7 @@ var config = {
     username: '', //or user
     password: ''  //or pass
 };
-var ftp = new FTP(config);
+var ftp = FTP.create(config);
 
 
 
@@ -201,7 +201,7 @@ var config = {
     username: '', //or user
     password: ''  //or pass
 };
-var ftp = new FTP(config);
+var ftp = FTP.create(config);
 
 
 

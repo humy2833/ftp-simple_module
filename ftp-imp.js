@@ -1,11 +1,17 @@
 'use strict';
 var util = require('util');
-var JSFtp  = require('jsftp');
+var ftpimp  = require('ftpimp');
+var Queue = ftpimp.Queue;
 var loop = require('easy-loop');
 var EventEmitter = require('events');
 var pathUtil = require('./lib/path-util');
 var fileUtil = require('./lib/file-util');
 
+/**
+ * ftpimp 모듈을 이용한 FTP 모듈로서 기본 ftp 모듈이 안될때는 이걸로 해보자.
+ * 예) 000webhost 일때
+ * @param {object} config 
+ */
 function FTP(config){
 	if(!this instanceof FTP) throw "must 'new FTP(config)'";
 	EventEmitter.call(this);
@@ -18,9 +24,14 @@ function FTP(config){
 	this.isLoginFail = false;
 	this.waitCount = 0;
 	this.isConnect = false;
-	if(config.debugMode === true) config.debugMode = true;
-	this.client = new JSFtp(config);
-	this.init(config);
+	if(config.debugMode === true) config.debug = true;
+	this.client = ftpimp.create(config, false);
+	this.client.connect(() => {
+		this.init(config);
+	});
+	process.on("uncaughtException", err => {
+		this.emit("error", err);
+	});
 }
 util.inherits(FTP, EventEmitter);
 
@@ -40,14 +51,10 @@ FTP.prototype.init = function(config){
 		function body(){
 			self.isConnect = true;
 			self.currentPath = p;
-			self.checkPasv(function(){
-				self.emit("open", self.client);
-				self.emit("ready", self.client);
-			});
+			self.isPasv = true;
+			self.emit("open", self.client);
+			self.emit("ready", self.client);
 		}
-	});
-	this.client.on('jsftp_debug', function(event, data){
-		self.event(event, data);
 	});
 };
 FTP.prototype.waitConnect = function(cb){
@@ -73,10 +80,10 @@ FTP.prototype.waitConnect = function(cb){
 FTP.prototype.cd = function(path, cb){
 	var self = this;
 	var p = this.getRealRemotePath(path);
-	this.client.raw('cwd', p, function(err, data){
+	this.client.chdir(p, function(err, path){
 		if(!err) self.currentPath = p;
-		if(cb)cb(err, p);
-	});
+		if(cb)cb(err, err ? null : p);
+	}, Queue.RunNow);
 };
 FTP.prototype.rm = function(path, cb){
 	var self = this;
@@ -88,30 +95,25 @@ FTP.prototype.rm = function(path, cb){
 		return;
 	}
 	var p = this.getRealRemotePath(path);
-	this.client.raw('dele', p, function(err){
-		if(err)
+	this.client.unlink(p, function(err, path){
+		if(err && err.message.indexOf("Invalid argument") > -1)
 		{
-			self.client.raw('rmd', p, function(err){
-				if(err)
+			deleteChild(p, function(err){
+				if(!err)
 				{
-					deleteChild(p, function(err){
-						if(!err)
-						{
-							self.rm(p, function(err){
-								if(cb) cb(err);
-							});
-						}
-						else if(cb) cb(err);
-					});
+					self.client.rmdir(p, function(err){
+						if(cb) cb(err);
+					}, true);
 				}
-				else if(cb)cb(err);
+				else if(cb) cb(err);
 			});
 		}
-		else	
+		else
 		{
-			if(cb)cb(err);
+			if(cb) cb(err);
 		}
 	});
+	
 	function deleteChild(path, cb){		
 		self.ls(path, function(err, list){
 			if(!err)
@@ -141,7 +143,7 @@ FTP.prototype.mkdir = function(path, cb){
 	this.exist(p, function(result){
 		if(!result)
 		{
-			self.client.raw('mkd', p, function(err){
+			self.client.mkdir(p, function(err){
 				if(err)
 				{
 					var arr = p.split("/");
@@ -151,7 +153,7 @@ FTP.prototype.mkdir = function(path, cb){
 						return i <= len;
 					}, function(next){
 						var pp = arr.slice(0, i).join("/");
-						self.client.raw('mkd', pp, function(err){
+						self.client.mkdir(pp, function(err){
 							if(err) errorCnt--;
 							i++;
 							next();
@@ -161,7 +163,7 @@ FTP.prototype.mkdir = function(path, cb){
 					});
 				}
 				else if(cb)cb(err);
-			});
+			}, true);
 		}
 		else if(cb) cb(undefined);
 	});
@@ -177,7 +179,7 @@ FTP.prototype.mv = function(oldPath, newPath, cb){
 	}
 	var op = this.getRealRemotePath(oldPath);
 	var np = this.getRealRemotePath(newPath);
-	this.client.rename(op, np, function(err, res){
+	this.client.rename([op, np], function(err, res){
 		if(cb) cb(err, np);
 	});
 };
@@ -221,40 +223,13 @@ FTP.prototype.ls = function(path, cb){
 		return;
 	}
 	var p = this.getRealRemotePath(path);
-	if(this.isPasv)
-	{
-		this.client.list(p, function(err, data){
-			if(!err)
-			{	
-				if(cb) cb(err, parsePasvList(data));
-			}
-			else if(cb) cb(err);
-		});
-	}
-	else
-	{
-		/*
-		this.client.raw('stat', p, function(err, data){
-			if(!err)
-			{	
-				if(cb) cb(err, parsePasvList(data.text.substring(data.text.indexOf(":")+1)));
-			}
-			else if(cb) cb(err);
-		});
-		*/
-		this.client.ls(p, function(err, list){
-			if(!err)
-			{
-				for(var i=0, len=list.length; i<len; i++)
-				{
-					list[i].date = new Date(list[i].time);
-					list[i].type = list[i].type === 1 ? 'd' : 'f';
-				}
-				if(cb) cb(err, list);
-			}
-			else if(cb) cb(err);
-		});
-	}
+	this.client.ls(p, function(err, data){
+		if(!err)
+		{	
+			if(cb) cb(err, parsePasvListFromArray(data));
+		}
+		else if(cb) cb(err);
+	});
 };
 FTP.prototype.pwd = function(cb){
 	var self = this;
@@ -265,13 +240,8 @@ FTP.prototype.pwd = function(cb){
 		});
 		return;
 	}
-	this.client.raw('pwd', function(err, data) {
-		if(!err && data) 
-		{
-			var idx = data.text.indexOf("\"");
-			data = data.text.substring(idx + 1, data.text.indexOf("\"", idx+1));
-		}
-		cb(err, data);
+	this.client.getcwd(function(err, path){
+		if(cb) cb(err, path);
 	});
 };
 FTP.prototype.isDir = function(path, cb){
@@ -438,22 +408,11 @@ FTP.prototype.upload = function(localPath, remotePath, cb, isRecursive){
 	});
 
 	function uploadFile(){
-		fileUtil.readFile(localPath, function(err, data){
-			if(!err)
-			{
-				self.client.put(data, remotePath, function(err){
-					if(!err) self.emit("upload", remotePath);
-					self.cd(cwd, function(){
-						if(cb)cb(err);
-					});
-				});
-			}
-			else if(cb) 
-			{
-				self.cd(cwd, function(){
-					if(cb)cb(err);
-				});
-			}
+		self.client.put([localPath, remotePath], function(err, path){
+			if(!err) self.emit("upload", remotePath);
+			self.cd(cwd, function(){
+				if(cb)cb(err);
+			});
 		});
 	}
 };
@@ -567,7 +526,7 @@ FTP.prototype.download = function(remotePath, localPath, cb, isRecursive){
 	}
 	
 	function bodyFile(){
-		self.client.get(remotePath, localPath, function(err){
+		self.client.save([remotePath, localPath], function(err, path){
 			if(!err)self.emit("download", localPath);
 			self.cd(cwd, function(){
 				if(cb)cb(err);
@@ -577,7 +536,7 @@ FTP.prototype.download = function(remotePath, localPath, cb, isRecursive){
 };
 FTP.prototype.end = FTP.prototype.close = function(cb){
 	var self = this;
-	this.client.raw('quit', function(err, data) {
+	this.client.quit(function() {
 			self.isConnect = false;
 	    self.emit("close");
 			if(cb) cb();
@@ -605,90 +564,17 @@ FTP.prototype.getRealRemotePath = function(path){
 	if(p.length > 1 && /\/$/.test(p)) p = p.substring(0, p.length-1);
 	return p;
 };
-FTP.prototype.checkPasv = function(cb){
-	var self = this;
-	/*
-	var flag = false;
-	self.client.ls("/", function(err, list){
-		console.log("active", err ? 1 : 0);
-		if(!err) 
-		{	
-			self.isPasv = false;
-			if(!flag && cb) cb();
-			flag = true;
-		}
-	});
-	self.client.list("/", function(err, list){
-		console.log("passive", err ? 1 : 0);
-		if(!err)
-		{
-			self.isPasv = true;
-			if(!flag && cb) cb();
-			flag = true;
-		}
-	});	
-	*/
-	this.client.ls("/", function(err, list){
-		//console.log("active", err ? 1 : 0);
-		if(!err) 
-		{
-			self.isPasv = false;
-			if(cb) cb();
-		}
-		else
-		{
-			self.client.list("/", function(err, list){
-				//console.log("passive", err ? 1 : 0);
-				if(!err) 
-				{
-					self.isPasv = true;
-					if(cb) cb();
-				}
-				else if(cb) cb(err);				
-			});	
-		}
-	});	
-};
-FTP.prototype.event = function(eventType, data){
-	if(!data) return;
-	console.log("event : ", eventType, JSON.stringify(data, null, 2));
-	if(data.code >= 400 && data.code <= 599) this.emit("error", data.text);
-};
-function parsePasvList(data){
-	var list = data.trim().split("\n");
+function parsePasvListFromArray(list){
 	var arr = [];
-	var year = new Date().getFullYear();
 	for(var i=0, len=list.length; i<len; i++)
 	{
-		list[i] = list[i].trim();
-		var temp = list[i].split(/\s+/);
-		if(!list[i] || temp.length < 9) continue;
-		var o = {type:'f'};
-		if(list[i].substring(0, 1) === 'd') o.type = 'd'; 
-		o.size = parseInt(temp[4]);
-		var dt = temp[5] + " " + temp[6] + " " + (temp[7].indexOf(":") > -1 ? year + " " + temp[7] + ":00 GMT+0000" : temp[7]);
-		o.date = new Date(dt);
-		if(temp.length === 9) o.name = temp[8];
-		else o.name = getName(list[i], temp[6], temp[7]);
-		if([".", ".."].indexOf(o.name) > -1) continue;
-		o.str = list[i];
-	  arr.push(o);
+		if([".", ".."].indexOf(list[i].filename) > -1) continue;
+		list[i].type = list[i].isDirectory ? 'd' : 'f';
+		list[i].size = parseInt(list[i].size);
+		list[i].date = new Date(list[i].mtime);
+		list[i].name = list[i].filename;
+		arr.push(list[i]);
 	}
 	return arr;
-  
-	function getName(s, s1, s2){
-		var n = 1;
-		while(true)
-		{
-			var t = "";
-			for(var i=0; i<n; i++) t += " ";
-			t = s1 + t + s2;
-			if(s.indexOf(t) > -1) return s.substring(s.indexOf(t) + 1);
-			n++;
-			if(n > 20) break;
-		}
-		return "";
-	}
 }
-
 module.exports = FTP;
