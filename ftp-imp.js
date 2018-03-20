@@ -13,7 +13,7 @@ var fileUtil = require('./lib/file-util');
  * @param {object} config 
  */
 function FTP(config){
-	if(!this instanceof FTP) throw "must 'new FTP(config)'";
+	if(!this instanceof FTP) throw "must 'FTP.create(config)'";
 	EventEmitter.call(this);
 	if(config.username) config.user = config.username;
 	if(config.password) config.pass = config.password;
