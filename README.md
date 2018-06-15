@@ -26,6 +26,7 @@ var ftp = FTP.create(config);
 
 
 
+
 //폴더 변경(directory change)
 ftp.cd("/", function(err, path){});	
 
@@ -125,16 +126,20 @@ ftp.close();
 
 API
 ===========
-Methods
+Static Method
 -------
-* **connect**(< _object_ >config) 
+* **create**(< _object_ >config) 
 
     * host - _string_	- server domain or ip **Default:** '127.0.0.1'
     * port - _number_	- port (default : 21)
     * username - _string_ - username for authentication.
     * password - _string_	- password for authentication.
+    * type - _string_ - This is a value that can use other settings.
+Please refer to 'https://www.npmjs.com/package/jsftp' if this is 'ftp' and 'https://www.npmjs.com/package/ftp' if it is 'ftp2'.
+The default is 'ftp'.
 
-
+Methods
+-------
 * **cd**(< _string_ >path, < _function_ >callback) - Changes the working directory. callback has 1 parameter: < Error >err.
 
 * **rm**(< _string_ >path, < _function_ >callback) - Deletes a file or directory(include child files) path on the server. callback has 1 parameter: < Error >err.
