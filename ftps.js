@@ -7,6 +7,7 @@ var pathUtil = require('./lib/path-util');
 var FTP = require('./main');
 
 function FTPS(config, num){
+  if(!this instanceof FTPS) throw "must 'new FTP.Parallel(config)'";
   EventEmitter.call(this);
   this.ftp = [];
   this.idx = 0;
