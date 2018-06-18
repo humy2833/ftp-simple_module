@@ -486,16 +486,20 @@ FTP.prototype.download = function(remotePath, localPath, cb, isRecursive){
 	
 	function bodyFile(){
 		self.client.get(remotePath, function(err, stream){
-      stream.pipe(fs.createWriteStream(localPath))
-      .on('error', function(e){
-        if(cb) cb(e);
-      })
-      .on('finish', function(){
-        self.emit("download", localPath);
-        self.cd(cwd, function(){
-          if(cb)cb(err);
-        });
-      });
+      if(stream)
+			{
+				stream.pipe(fs.createWriteStream(localPath))
+				.on('error', function(e){
+					if(cb) cb(e);
+				})
+				.on('finish', function(){
+					self.emit("download", localPath);
+					self.cd(cwd, function(){
+						if(cb)cb(err);
+					});
+				});
+			}
+			else if(cb) cb(new Error(`Not exists file : ${remotePath}`));
 		});
 	}
 };
