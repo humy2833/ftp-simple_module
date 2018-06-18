@@ -615,29 +615,7 @@ FTP.prototype.getRealRemotePath = function(path){
 };
 FTP.prototype.checkPasv = function(cb){
 	var self = this;
-	/*
-	var flag = false;
-	self.client.ls("/", function(err, list){
-		console.log("active", err ? 1 : 0);
-		if(!err) 
-		{	
-			self.isPasv = false;
-			if(!flag && cb) cb();
-			flag = true;
-		}
-	});
-	self.client.list("/", function(err, list){
-		console.log("passive", err ? 1 : 0);
-		if(!err)
-		{
-			self.isPasv = true;
-			if(!flag && cb) cb();
-			flag = true;
-		}
-	});	
-	*/
 	this.client.ls("/", function(err, list){
-		//console.log("active", err ? 1 : 0);
 		if(!err) 
 		{
 			self.isPasv = false;
@@ -646,7 +624,6 @@ FTP.prototype.checkPasv = function(cb){
 		else
 		{
 			self.client.list("/", function(err, list){
-				//console.log("passive", err ? 1 : 0);
 				if(!err) 
 				{
 					self.isPasv = true;

@@ -15,6 +15,7 @@ function FTP(config){
 	if(!config.host) config.host = "127.0.0.1";
 	if(!config.port) config.port = 21;
 	if(!Number.isInteger(config.keepalive)) config.keepalive =  1000 * 10;
+	if(!Number.isInteger(config.connTimeout)) config.connTimeout =  1000 * 10;
 	this.currentPath = "/";
 	this.isPasv = false;
 	this.isLoginFail = false;
@@ -40,6 +41,7 @@ FTP.prototype.init = function(config){
         });
       }
       function body(){
+				self.listSafe = undefined;
         self.isConnect = true;
         self.currentPath = p;
         self.emit("open", self.client);
@@ -51,8 +53,10 @@ FTP.prototype.init = function(config){
     self.emit("error", e);
   });
   this.client.on('end', function(e){
+		self.listSafe = undefined;
+		self.isConnect = false;
     self.emit("close");
-  });
+	});
   this.client.connect(config);
 };
 FTP.prototype.waitConnect = function(cb){
@@ -182,13 +186,41 @@ FTP.prototype.ls = function(path, cb){
 		return;
 	}
 	var p = this.getRealRemotePath(path);
-	this.client.list(p, function(err, data){
-    if(!err)
-    {	
-      if(cb) cb(err, parseList(data));
-    }
-    else if(cb) cb(err);
-  });
+	if(self.listSafe === true)
+	{
+		getListSafe();
+	}
+	else
+	{
+		this.client.list(p, function(err, data){
+			if(err)
+			{
+				if(self.listSafe === undefined) getListSafe();
+				else if(cb) cb(err);
+			}
+			else
+			{
+				self.listSafe = false;
+				if(cb) cb(err, parseList(data));
+			}
+		});
+	}
+
+	function getListSafe(){
+		self.client.listSafe(p, function(e, data){
+			console.log("e :", e);
+			if(e)
+			{
+				self.listSafe = false;
+				if(cb) cb(e);
+			}
+			else
+			{
+				self.listSafe = true;
+				if(cb) cb(e, parseList(data));
+			}
+		});
+	}
 };
 FTP.prototype.pwd = function(cb){
 	var self = this;
