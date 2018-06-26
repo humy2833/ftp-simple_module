@@ -1,18 +1,20 @@
 var FTP = require('../main');
 var config = {
-	"host": "localhost",
+	"host": "humy2833.dothome.co.kr",
 	"port": 21,
-	"user": "",
-	"pass": ""
+	"user": "humy2833",
+	"pass": "28332833"
 };
 var ftp = FTP.create(config);
-ftp.on("open", function(){
+ftp.on("open", function(client){
 	console.log("event open", arguments.length);	
 	ftp.cd('html', function(err){
 		console.log(`cd : ${err}`);
 		ftp.ls('.', function(err, list){
 			console.log(`cd : ${err}, ${list}`);
-			end();
+			setTimeout(() => {
+				end();
+			}, 1000 * 60);
 		});
 	})
 });

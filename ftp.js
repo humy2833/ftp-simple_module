@@ -19,7 +19,6 @@ function FTP(config){
 	this.isLoginFail = false;
 	this.waitCount = 0;
 	this.isConnect = false;
-	this.keepAliver = null;
 	if(config.debugMode === true) config.debugMode = true;
 	this.client = new JSFtp(config);
 	this.init(config);
@@ -45,11 +44,10 @@ FTP.prototype.init = function(config){
 			self.checkPasv(function(){
 				self.emit("open", self.client);
 				self.emit("ready", self.client);
-				self.keepAliver = setInterval(() => {
-					if(self.isConnect) self.pwd();
-					else clearInterval(self.keepAliver);
-				}, config.keepalive);
-				//self.client.keepAlive(config.keepalive || 1000 * 10);
+				if(config.keepalive > 0)
+				{
+					self.client.keepAlive(config.keepalive);
+				}
 			});
 		}
 	});
@@ -584,11 +582,11 @@ FTP.prototype.download = function(remotePath, localPath, cb, isRecursive){
 };
 FTP.prototype.end = FTP.prototype.close = function(cb){
 	var self = this;
-	clearInterval(self.keepAliver);
 	this.client.raw('quit', function(err, data) {
-			self.isConnect = false;
-	    self.emit("close");
-			if(cb) cb();
+		self.client.destroy();
+		self.isConnect = false;
+		self.emit("close");
+		if(cb) cb();
 	});
 };
 FTP.prototype.getRealRemotePath = function(path){

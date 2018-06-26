@@ -5,7 +5,7 @@ var ftp2 = require('./ftp2');
 var ftps = require('./ftps');
 
 function creater(config){
-  if(config.host === 'files.000webhost.com' || config.type === 'ftp2')
+  if(config.host === 'files.000webhost.com' || config.type === 'ftp2' || config.secure)
   {
     config.type = 'ftp';
      return new ftp2(config);
