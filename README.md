@@ -4,10 +4,21 @@ ftp-simple
 - 간단한 설정만으로 편리하게 FTP 기능을 이용할 수 있습니다.
 
 
+Caution
+===========
+    If Node.js version is 8 or higher, use 0.3.0 or higher. Otherwise, use version 0.2.7.
+
+
 Install
 =======
-
+Node.js version is 8 or higher
+    
     npm install ftp-simple
+
+Otherwise
+    
+    npm install ftp-simple@0.2.7
+
 
 
 
@@ -135,8 +146,21 @@ Static Method
     * username - _string_ - username for authentication.
     * password - _string_	- password for authentication.
     * type - _string_ - This is a value that can use other settings.
-Please refer to 'https://www.npmjs.com/package/jsftp' if this is 'ftp' and 'https://www.npmjs.com/package/ftp' if it is 'ftp2'.
-The default is 'ftp'.
+    * secure - _boolean_ - Explicit FTPS over TLS, default: false
+    * secureOptions - _object_ - Options for TLS, same as for `tls.connect()` in Node.js.
+
+
+    [Node.js version is 8 or higher]
+
+    Please refer to 'https://www.npmjs.com/package/basic-ftp' if this is 'ftp' and 'https://www.npmjs.com/package/ftp' if it is 'ftp2'. The 'secure' option is available regardless of 'type'.
+    The default is 'ftp'.
+
+    [Otherwise]
+
+    Please refer to 'https://www.npmjs.com/package/jsftp' if this is 'ftp' and 'https://www.npmjs.com/package/ftp' if it is 'ftp2'. The 'secure' option is available for 'ftp2'. 
+    The default is 'ftp'.
+
+
 
 Methods
 -------

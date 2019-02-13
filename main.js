@@ -1,11 +1,12 @@
 'use strict';
-var ftp = require('./ftp');
+//var ftp = require('./ftp');
 //var ftp2 = require('./ftp-imp');
 var ftp2 = require('./ftp2');
+var ftp = require('./ftp3');
 var ftps = require('./ftps');
 
 function creater(config){
-  if(config.host === 'files.000webhost.com' || config.type === 'ftp2' || config.secure)
+  if(config.type === 'ftp2')
   {
     config.type = 'ftp';
      return new ftp2(config);
