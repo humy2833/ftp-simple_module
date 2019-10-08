@@ -201,7 +201,7 @@ FTP.prototype.ls = function(path, cb){
 			.then(fileInfos => {
 				for(let v of fileInfos)
 				{
-					v.type = v.type == 1 ? 'd' : 'f';
+					v.type = v.isDirectory ? 'd' : 'f';
 					v.date = new Date(v.date);
 				}
 				if(cb) cb(null, fileInfos);
